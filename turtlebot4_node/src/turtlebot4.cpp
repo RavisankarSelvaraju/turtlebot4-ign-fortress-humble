@@ -142,6 +142,10 @@ Turtlebot4::Turtlebot4()
     "ip",
     rclcpp::QoS(rclcpp::KeepLast(10)));
 
+  function_call_pub_ = this->create_publisher<std_msgs::msg::String>(
+    "function_calls",
+    rclcpp::QoS(rclcpp::KeepLast(10)));
+
   // Create action/service clients
   dock_client_ = std::make_unique<Turtlebot4Action<Dock>>(node_handle_, "dock");
   undock_client_ = std::make_unique<Turtlebot4Action<Undock>>(node_handle_, "undock");
@@ -151,8 +155,12 @@ Turtlebot4::Turtlebot4()
     "led_animation");
   estop_client_ = std::make_unique<Turtlebot4Service<EStop>>(node_handle_, "e_stop");
   power_client_ = std::make_unique<Turtlebot4Service<Power>>(node_handle_, "robot_power");
-  rplidar_start_motor_client_ = std::make_unique<Turtlebot4EmptyService<RplidarMotor>>(node_handle_, "start_motor");
-  rplidar_stop_motor_client_ = std::make_unique<Turtlebot4EmptyService<RplidarMotor>>(node_handle_, "stop_motor");
+  rplidar_start_motor_client_ = std::make_unique<Turtlebot4EmptyService<RplidarMotor>>(
+    node_handle_,
+    "start_motor");
+  rplidar_stop_motor_client_ = std::make_unique<Turtlebot4EmptyService<RplidarMotor>>(
+    node_handle_,
+    "stop_motor");
 
   function_callbacks_ = {
     {"Dock", std::bind(&Turtlebot4::dock_function_callback, this)},
@@ -504,19 +512,16 @@ void Turtlebot4::power_function_callback()
 void Turtlebot4::rplidar_motor_function_callback()
 {
   if (rplidar_start_motor_client_ != nullptr && rplidar_stop_motor_client_ != nullptr) {
-    
     auto request = std::make_shared<RplidarMotor::Request>();
 
-    if (rplidar_motor_enabled_)
-    {
+    if (rplidar_motor_enabled_) {
       rplidar_stop_motor_client_->make_request(request);
       RCLCPP_INFO(this->get_logger(), "RPLIDAR Motor stopped");
-    }
-    else {
+    } else {
       rplidar_start_motor_client_->make_request(request);
       RCLCPP_INFO(this->get_logger(), "RPLIDAR Motor started");
     }
-    
+
     rplidar_motor_enabled_ = !rplidar_motor_enabled_;
   } else {
     RCLCPP_ERROR(this->get_logger(), "RPLIDAR client NULL");
@@ -572,6 +577,17 @@ void Turtlebot4::unused_function_callback()
 }
 
 /**
+ * @brief Callback for when a function call is executed
+ */
+void Turtlebot4::function_call_callback(std::string function_name)
+{
+  std_msgs::msg::String msg;
+  msg.data = function_name;
+
+  function_call_pub_->publish(msg);
+}
+
+/**
  * @brief Creates action or service clients and adds appropriate callbacks
  * for each function declared in ROS parameters
  */
@@ -591,6 +607,10 @@ void Turtlebot4::add_button_function_callbacks()
     } else {
       button.long_cb_ = std::bind(&Turtlebot4::unused_function_callback, this);
     }
+
+    button.function_call_cb_ = std::bind(
+      &Turtlebot4::function_call_callback, this,
+      std::placeholders::_1);
   }
 }
 
@@ -606,6 +626,9 @@ void Turtlebot4::add_menu_function_callbacks()
     } else {
       entry.cb_ = std::bind(&Turtlebot4::unused_function_callback, this);
     }
+    entry.function_call_cb_ = std::bind(
+      &Turtlebot4::function_call_callback, this,
+      std::placeholders::_1);
   }
 }
 
