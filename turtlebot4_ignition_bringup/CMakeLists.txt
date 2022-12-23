@@ -1,15 +1,5 @@
-cmake_minimum_required(VERSION 3.5)
-project(turtlebot4_description)
-
-# Default to C99
-if(NOT CMAKE_C_STANDARD)
-  set(CMAKE_C_STANDARD 99)
-endif()
-
-# Default to C++14
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
-endif()
+cmake_minimum_required(VERSION 3.8)
+project(turtlebot4_ignition_bringup)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -17,11 +7,11 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(urdf REQUIRED)
-# find_package(irobot_create_description REQUIRED)
+
+find_package(ros_ign_interfaces REQUIRED)
 
 install(
-  DIRECTORY launch meshes urdf
+  DIRECTORY config gui launch worlds
   DESTINATION share/${PROJECT_NAME}
 )
 
